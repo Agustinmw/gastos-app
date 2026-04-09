@@ -659,13 +659,13 @@
           <label>Foto del ticket</label>
           <label id="ticket-upload-label" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px;border:1.5px dashed var(--border2);border-radius:var(--r);background:var(--bg2);cursor:pointer;color:var(--text2);font-size:14px;font-weight:400">
             <span style="font-size:32px">📷</span>
-            <span id="ticket-upload-text">Tocá para subir una foto</span>
-            <input type="file" id="ticket-file" accept="image/*" capture="environment" style="display:none" onchange="handleTicketPhoto(this)" />
+            <span id="ticket-upload-text">Fotos o PDF del ticket</span>
+            <span style="font-size:11px;color:var(--text3)">Podés seleccionar varias fotos a la vez</span>
+            <input type="file" id="ticket-file" accept="image/*,application/pdf" multiple style="display:none" onchange="handleTicketFiles(this)" />
           </label>
+          <div id="ticket-thumbs" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
         </div>
-        <div id="ticket-preview" style="display:none;margin-bottom:12px">
-          <img id="ticket-img" style="width:100%;border-radius:var(--r-sm);border:0.5px solid var(--border)" />
-        </div>
+        <div id="ticket-preview" style="margin-bottom:4px"></div>
         <div id="ticket-analyzing" style="display:none;text-align:center;padding:16px;color:var(--text2);font-size:14px">
           <div style="font-size:24px;margin-bottom:8px">🤖</div>
           Analizando ticket...
@@ -1083,71 +1083,97 @@ Respondé solo con JSON:`;
   }
 }
 
-async function handleTicketPhoto(input) {
-  if (!input.files || !input.files[0]) return;
+async function handleTicketFiles(input) {
+  if (!input.files || !input.files.length) return;
   if (!apiKey) { showToast('Configurá tu API Key para usar esta función', 'error'); return; }
 
-  const file = input.files[0];
-  document.getElementById('ticket-upload-text').textContent = file.name;
+  const files = Array.from(input.files);
+  const count = files.length;
+  document.getElementById('ticket-upload-text').textContent = count === 1 ? files[0].name : count + ' archivos seleccionados';
 
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const base64 = e.target.result.split(',')[1];
-    const mime = file.type;
+  // Show thumbnails
+  const thumbsEl = document.getElementById('ticket-thumbs');
+  thumbsEl.innerHTML = '';
+  files.forEach(f => {
+    if (f.type.startsWith('image/')) {
+      const img = document.createElement('img');
+      img.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:6px;border:0.5px solid var(--border)';
+      const r = new FileReader();
+      r.onload = e => { img.src = e.target.result; };
+      r.readAsDataURL(f);
+      thumbsEl.appendChild(img);
+    } else if (f.type === 'application/pdf') {
+      const pill = document.createElement('div');
+      pill.style.cssText = 'display:flex;align-items:center;gap:4px;padding:4px 10px;background:var(--accent-bg);border-radius:6px;font-size:12px;color:var(--accent-text);border:0.5px solid var(--accent)';
+      pill.textContent = '📄 ' + f.name;
+      thumbsEl.appendChild(pill);
+    }
+  });
 
-    document.getElementById('ticket-preview').style.display = 'block';
-    document.getElementById('ticket-img').src = e.target.result;
-    document.getElementById('ticket-analyzing').style.display = 'block';
-    document.getElementById('ticket-table-wrap').style.display = 'none';
+  document.getElementById('ticket-analyzing').style.display = 'block';
+  document.getElementById('ticket-table-wrap').style.display = 'none';
 
-    const rubrosEgreso = DATA.rubrosEgreso;
-    const subsList = Object.entries(rubrosEgreso).map(([r,ss]) => r.replace(/_/g,' ') + ': ' + ss.join(', ')).join('\n');
+  // Read all files as base64
+  const readFile = (file) => new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = e => res({ base64: e.target.result.split(',')[1], mime: file.type });
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
 
-    const prompt = `Analizá este ticket de compra y extraé TODOS los ítems con sus montos finales (después de descuentos).
-Para cada ítem, asigná el rubro y subrubro MÁS apropiado de la siguiente lista.
+  const rubrosEgreso = DATA.rubrosEgreso;
+  const subsList = Object.entries(rubrosEgreso).map(([r,ss]) => r.replace(/_/g,' ') + ': ' + ss.join(', ')).join('\n');
 
-RUBROS Y SUBRUBROS DISPONIBLES:
+  const prompt = `Analizá este ticket de compra y extraé TODOS los ítems con sus montos finales (después de descuentos).
+Para cada ítem asigná el rubro y subrubro más apropiado de la lista.
+
+RUBROS Y SUBRUBROS:
 ${subsList}
 
-Respondé SOLO con un JSON array, sin texto extra, sin backticks. Formato:
-[{"item":"nombre del producto","monto":1234.56,"rubro":"Compras","subrubro":"Comida Otros"}, ...]
+Respondé SOLO con un JSON array sin texto extra ni backticks:
+[{"item":"nombre","monto":1234.56,"rubro":"Compras","subrubro":"Comida Otros"}, ...]
 
-IMPORTANTE:
-- monto debe ser el precio final pagado (después de descuentos)
-- Para snacks/golosinas/picada usar rubro "Compras" subrubro "Picada en casa con los enanos"
-- Para lácteos usar "Compras" → "Leche"
-- Para bebidas alcohólicas usar "Salidas" → "Invitar a Casa"
-- Para limpieza/higiene del hogar usar "Compras" → "Limpieza/Cocina"
-- Para carnes usar "Compras" → "Carniceria"
-- Para verduras usar "Compras" → "Verduleria"
-- Si no sabés, usá "Compras" → "Comida Otros"`;
+REGLAS:
+- monto = precio final pagado (después de descuentos)
+- snacks/golosinas/picada → "Compras" / "Picada en casa con los enanos"
+- lácteos/leche → "Compras" / "Leche"
+- bebidas alcohólicas → "Salidas" / "Invitar a Casa"
+- limpieza/higiene hogar → "Compras" / "Limpieza/Cocina"
+- carnes → "Compras" / "Carniceria"
+- verduras/frutas → "Compras" / "Verduleria"
+- pan/panadería → "Compras" / "Pan"
+- pasta → "Compras" / "Pastas"
+- default → "Compras" / "Comida Otros"
+- Si hay varias fotos/páginas son partes del mismo ticket, no dupliques ítems`;
 
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 2000,
-          messages: [{ role: 'user', content: [
-            { type: 'image', source: { type: 'base64', media_type: mime, data: base64 } },
-            { type: 'text', text: prompt }
-          ]}]
-        })
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message);
-      const text = data.content[0].text.replace(/```json|```/g,'').trim();
-      ticketItems = JSON.parse(text);
-      document.getElementById('ticket-analyzing').style.display = 'none';
-      document.getElementById('ticket-table-wrap').style.display = 'block';
-      renderTicketItems();
-    } catch(err) {
-      document.getElementById('ticket-analyzing').style.display = 'none';
-      showToast('Error al analizar ticket: ' + err.message, 'error');
-    }
-  };
-  reader.readAsDataURL(file);
+  try {
+    const fileData = await Promise.all(files.map(readFile));
+
+    // Build content array: all images/PDFs first, then the prompt text
+    const contentBlocks = fileData.map(fd => {
+      if (fd.mime === 'application/pdf') {
+        return { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: fd.base64 } };
+      }
+      return { type: 'image', source: { type: 'base64', media_type: fd.mime, data: fd.base64 } };
+    });
+    contentBlocks.push({ type: 'text', text: prompt });
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4000, messages: [{ role: 'user', content: contentBlocks }] })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content[0].text.replace(/```json|```/g,'').trim();
+    ticketItems = JSON.parse(text);
+    document.getElementById('ticket-analyzing').style.display = 'none';
+    document.getElementById('ticket-table-wrap').style.display = 'block';
+    renderTicketItems();
+  } catch(err) {
+    document.getElementById('ticket-analyzing').style.display = 'none';
+    showToast('Error al analizar: ' + err.message, 'error');
+  }
 }
 
 function makeTicketRubroSel(idx, val) {
@@ -1350,8 +1376,8 @@ function resetForm() {
   document.getElementById('ticket-items-container').innerHTML = '';
   document.getElementById('ticket-table-wrap').style.display = 'none';
   document.getElementById('ticket-analyzing').style.display = 'none';
-  document.getElementById('ticket-preview').style.display = 'none';
-  document.getElementById('ticket-upload-text').textContent = 'Tocá para subir una foto';
+  document.getElementById('ticket-thumbs').innerHTML = '';
+  document.getElementById('ticket-upload-text').textContent = 'Fotos o PDF del ticket';
   document.getElementById('ticket-nota').value = '';
   const fi = document.getElementById('ticket-file'); if(fi) fi.value = '';
   updateTicketSummary();
