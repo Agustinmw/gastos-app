@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Gastos">
+<link rel="manifest" href="manifest.json">
+<title>Registro de Gastos</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f3;
+    --bg3: #efefec;
+    --text: #1a1a18;
+    --text2: #6b6b67;
+    --text3: #9b9b96;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.22);
+    --accent: #5B4BD5;
+    --accent-bg: #EEEDFE;
+    --accent-text: #3C3489;
+    --green: #0F6E56;
+    --green-bg: #E1F5EE;
+    --red: #993C1D;
+    --red-bg: #FAECE7;
+    --amber: #854F0B;
+    --amber-bg: #FAEEDA;
+    --r: 10px;
+    --r-sm: 6px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --bg2: #252523;
+      --bg3: #2e2e2b;
+      --text: #f0f0ec;
+      --text2: #a0a09b;
+      --text3: #6b6b66;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.2);
+      --accent: #8b7ef5;
+      --accent-bg: #26215C;
+      --accent-text: #CECBF6;
+      --green: #5DCAA5;
+      --green-bg: #085041;
+      --red: #F0997B;
+      --red-bg: #4A1B0C;
+      --amber: #FAC775;
+      --amber-bg: #412402;
+    }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg3);
+    color: var(--text);
+    min-height: 100dvh;
+    max-width: 480px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    background: var(--bg);
+    border-bottom: 0.5px solid var(--border);
+    padding: 16px 20px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  header h1 { font-size: 18px; font-weight: 600; color: var(--text); }
+  header p { font-size: 13px; color: var(--text2); margin-top: 2px; }
+  main { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  .card {
+    background: var(--bg);
+    border-radius: var(--r);
+    border: 0.5px solid var(--border);
+    overflow: hidden;
+  }
+  .card-section { padding: 16px; }
+  .card-section + .card-section { border-top: 0.5px solid var(--border); }
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text3);
+    margin-bottom: 10px;
+  }
+
+  /* Voice button */
+  .voice-btn {
+    width: 100%;
+    padding: 20px;
+    border-radius: var(--r);
+    border: 1.5px dashed var(--border2);
+    background: var(--bg2);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s;
+    color: var(--text2);
+    font-size: 14px;
+  }
+  .voice-btn:active { transform: scale(0.98); }
+  .voice-btn.recording {
+    border-color: #E24B4A;
+    background: #FFF5F5;
+    color: #A32D2D;
+  }
+  @media (prefers-color-scheme: dark) {
+    .voice-btn.recording { background: #501313; color: #F7C1C1; }
+  }
+  .voice-btn.recording .voice-icon { animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+  .voice-icon { font-size: 32px; }
+  .voice-btn span { font-size: 13px; }
+
+  /* Form fields */
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    margin-bottom: 5px;
+  }
+  select, input[type="text"], input[type="number"], input[type="date"] {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 15px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--r-sm);
+    background: var(--bg2);
+    color: var(--text);
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+  }
+  select:focus, input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(91,75,213,0.12);
+  }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b67' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* AI preview */
+  .ai-preview {
+    background: var(--accent-bg);
+    border: 0.5px solid var(--accent);
+    border-radius: var(--r);
+    padding: 14px 16px;
+    display: none;
+  }
+  .ai-preview.visible { display: block; }
+  .ai-preview-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent-text);
+    margin-bottom: 8px;
+  }
+  .ai-preview p {
+    font-size: 13px;
+    color: var(--accent-text);
+    line-height: 1.5;
+  }
+  .ai-preview .transcript {
+    font-size: 13px;
+    color: var(--accent-text);
+    font-style: italic;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 0.5px solid var(--accent);
+    opacity: 0.8;
+  }
+
+  /* Submit */
+  .btn-primary {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--r);
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-secondary {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    background: transparent;
+    color: var(--text2);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--r);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-secondary:active { background: var(--bg2); }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--text);
+    color: var(--bg);
+    padding: 12px 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 100;
+    transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
+    white-space: nowrap;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--green); }
+  .toast.error { background: var(--red); }
+
+  /* Loading spinner */
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Config screen */
+  #config-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg3);
+    z-index: 50;
+    overflow-y: auto;
+    max-width: 480px;
+    margin: 0 auto;
+    display: none;
+  }
+  #config-screen.visible { display: block; }
+  .config-header {
+    background: var(--bg);
+    border-bottom: 0.5px solid var(--border);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .back-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--text);
+    padding: 4px;
+  }
+  .config-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .config-hint {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.5;
+    background: var(--amber-bg);
+    padding: 12px 14px;
+    border-radius: var(--r-sm);
+    border: 0.5px solid var(--amber);
+    color: var(--amber);
+  }
+  textarea {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-family: monospace;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--r-sm);
+    background: var(--bg2);
+    color: var(--text);
+    resize: vertical;
+    min-height: 80px;
+    outline: none;
+  }
+
+  /* Recent entries */
+  .entry-item {
+    padding: 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .entry-item + .entry-item { border-top: 0.5px solid var(--border); }
+  .entry-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--accent-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .entry-info { flex: 1; min-width: 0; }
+  .entry-title { font-size: 14px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .entry-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .entry-amount {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+  .entry-amount.ingreso { color: var(--green); }
+
+  .settings-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    color: var(--text2);
+  }
+  .tipo-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .tipo-Egreso { background: var(--red-bg); color: var(--red); }
+  .tipo-Ingreso { background: var(--green-bg); color: var(--green); }
+
+  .empty-state {
+    text-align: center;
+    padding: 24px 16px;
+    color: var(--text3);
+    font-size: 14px;
+  }
+
+  /* Detail screen */
+  #detail-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg3);
+    z-index: 50;
+    overflow-y: auto;
+    max-width: 480px;
+    margin: 0 auto;
+    display: none;
+  }
+  #detail-screen.visible { display: block; }
+  .detail-header {
+    background: var(--bg);
+    border-bottom: 0.5px solid var(--border);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .detail-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .detail-amount-card {
+    background: var(--bg);
+    border-radius: var(--r);
+    border: 0.5px solid var(--border);
+    padding: 20px;
+    text-align: center;
+  }
+  .detail-amount-card .amount {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .detail-amount-card .amount.ingreso { color: var(--green); }
+  .detail-amount-card .amount.egreso { color: var(--red); }
+  .detail-amount-card .sub {
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 11px 0;
+    border-bottom: 0.5px solid var(--border);
+    gap: 12px;
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-row .lbl {
+    font-size: 13px;
+    color: var(--text2);
+    flex-shrink: 0;
+    width: 110px;
+  }
+  .detail-row .val {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    text-align: right;
+    flex: 1;
+  }
+  .detail-tipo-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .badge-Egreso { background: var(--red-bg); color: var(--red); }
+  .badge-Ingreso { background: var(--green-bg); color: var(--green); }
+
+  .entry-item { cursor: pointer; }
+  .entry-item:active { background: var(--bg2); margin: 0 -16px; padding: 12px 16px; border-radius: var(--r-sm); }
+
+  /* Mode tabs */
+  .mode-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .mode-tab {
+    padding: 9px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .mode-tab.active {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+    color: var(--accent-text);
+  }
+
+  /* Multi items */
+  .multi-item {
+    background: var(--bg2);
+    border: 0.5px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 12px;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .multi-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .multi-item-num {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-text);
+    background: var(--accent-bg);
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 0.5px solid var(--accent);
+  }
+  .remove-item-btn {
+    background: none;
+    border: none;
+    color: var(--red);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+  }
+  .add-item-btn {
+    width: 100%;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    background: transparent;
+    color: var(--accent);
+    border: 1px dashed var(--accent);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    margin-top: 4px;
+    transition: background 0.15s;
+  }
+  .add-item-btn:active { background: var(--accent-bg); }
+
+  .multi-summary {
+    background: var(--bg2);
+    border-radius: var(--r-sm);
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .multi-summary span:last-child {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <h1>Registro de gastos</h1>
+      <p id="today-label"></p>
+    </div>
+    <button class="settings-btn" onclick="showConfig()" title="Configuración">⚙️</button>
+  </div>
+</header>
+
+<main>
+  <!-- Voice section -->
+  <div class="card">
+    <div class="card-section">
+      <div class="section-label">Registrar por voz</div>
+      <button class="voice-btn" id="voiceBtn" onclick="toggleRecording()">
+        <span class="voice-icon" id="voiceIcon">🎙️</span>
+        <span id="voiceLabel">Tocá para hablar</span>
+      </button>
+      <div class="ai-preview" id="aiPreview">
+        <div class="ai-preview-title">Interpretado por IA</div>
+        <div class="transcript" id="aiTranscript"></div>
+        <p id="aiResult"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manual form -->
+  <div class="card">
+    <div class="card-section">
+      <div class="section-label">Datos del registro</div>
+
+      <!-- Mode tabs -->
+      <div class="mode-tabs">
+        <button class="mode-tab active" id="tab-single" onclick="setMode('single')">Registro único</button>
+        <button class="mode-tab" id="tab-multi" onclick="setMode('multi')">Compra múltiple</button>
+      </div>
+
+      <!-- Common fields (always visible) -->
+      <div class="field">
+        <label>Tipo</label>
+        <select id="tipo" onchange="filterRubros(); if(currentMode==='multi') rebuildMultiItems();">
+          <option value="Egreso">Egreso</option>
+          <option value="Ingreso">Ingreso</option>
+        </select>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>Fecha</label>
+          <input type="date" id="fecha" />
+        </div>
+        <div class="field">
+          <label>Forma de pago</label>
+          <select id="formaPago">
+            <option value="">Seleccionar...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>Moneda</label>
+          <select id="moneda">
+            <option value="ARP" selected>ARP</option>
+            <option value="USD">USD</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Cuotas</label>
+          <input type="number" id="cuotas" placeholder="" min="1" step="1" inputmode="numeric" />
+        </div>
+      </div>
+
+      <!-- SINGLE MODE -->
+      <div id="single-mode">
+        <div class="row2">
+          <div class="field">
+            <label>Rubro</label>
+            <select id="rubro" onchange="filterSubrubros()">
+              <option value="">Seleccionar...</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Sub rubro</label>
+            <select id="subrubro">
+              <option value="">Seleccionar...</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Monto ($)</label>
+          <input type="number" id="monto" placeholder="0" inputmode="decimal" />
+        </div>
+        <div class="field">
+          <label>Comentario (opcional)</label>
+          <input type="text" id="nota" placeholder="Descripción adicional..." />
+        </div>
+      </div>
+
+      <!-- MULTI MODE -->
+      <div id="multi-mode" style="display:none">
+        <div class="field">
+          <label>Comentario general (opcional)</label>
+          <input type="text" id="multi-nota" placeholder="Ej: Supermercado Coto..." />
+        </div>
+        <div id="multi-items-container"></div>
+        <button class="add-item-btn" onclick="addMultiItem()">+ Agregar ítem</button>
+        <div class="multi-summary">
+          <span id="multi-count">0 ítems</span>
+          <span id="multi-total">$0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-section">
+      <button class="btn-primary" id="submitBtn" onclick="submitEntry()">Guardar registro</button>
+    </div>
+  </div>
+
+  <!-- Recent entries -->
+  <div class="card">
+    <div class="card-section">
+      <div class="section-label">Últimos registros</div>
+      <div id="recentList"><div class="empty-state">Sin registros aún</div></div>
+    </div>
+  </div>
+</main>
+
+<!-- Detail screen -->
+<div id="detail-screen">
+  <div class="detail-header">
+    <button class="back-btn" onclick="hideDetail()">←</button>
+    <h1 style="font-size:17px;font-weight:600">Detalle del registro</h1>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<!-- Config screen -->
+<div id="config-screen">
+  <div class="config-header">
+    <button class="back-btn" onclick="hideConfig()">←</button>
+    <h1 style="font-size:17px;font-weight:600">Configuración</h1>
+  </div>
+  <div class="config-body">
+    <div class="config-hint">
+      Para que la IA interprete los audios necesitás una clave de API de Anthropic. Es gratuito registrarse en console.anthropic.com y cada transcripción cuesta menos de $0.01.
+    </div>
+    <div class="card">
+      <div class="card-section">
+        <div class="field">
+          <label>API Key de Anthropic</label>
+          <input type="text" id="apiKeyInput" placeholder="sk-ant-..." style="font-family:monospace;font-size:13px" />
+        </div>
+        <p style="font-size:12px;color:var(--text3);margin-top:6px">Se guarda solo en tu dispositivo. Nunca se envía a ningún servidor propio.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-section">
+        <div class="field">
+          <label>URL de Power Automate (webhook)</label>
+          <input type="text" id="webhookInput" placeholder="https://..." style="font-family:monospace;font-size:11px" />
+        </div>
+        <p style="font-size:12px;color:var(--text3);margin-top:6px">Si está configurada, cada registro se guarda también en tu lista de SharePoint.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-section">
+        <div class="section-label">Exportar registros (CSV)</div>
+        <button class="btn-secondary" onclick="exportCSV()">Descargar CSV</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-section">
+        <div class="section-label" style="color:var(--red)">Zona de peligro</div>
+        <button class="btn-secondary" style="color:var(--red);border-color:var(--red)" onclick="clearAll()">Borrar todos los registros</button>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="saveConfig()">Guardar configuración</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DATA = {
+  rubrosEgreso: {"Trabajo_Jose": ["Materiales", "Comidas/Office"], "Prestamo": ["Papá y mamá", "Vale", "Pipe B", "Rami y Michu", "Otros"], "Limpieza": ["Limpieza - Sueldo", "Limpieza - Aportes", "Niñera", "Lavarap", "Otros"], "Servicios_e_impuestos": ["ABL", "Celular Jose", "Celular Mio", "Cuenta Jose", "Cuenta Mia", "Edenor", "Gas", "Impuesto Debito", "Patente", "Spotify", "Internet", "Otros", "Guardia", "Microsoft", "Seguro", "HBO", "YouTube", "Seguro Hogar", "MP Nivel 6", "Paramount", "Chat GPT", "LinkedIn", "Netflix", "Pedido Ya Plus", "Futbol - Direc Tv", "Game Pass"], "Colegio": ["Colonia", "Cuota", "Ropa", "Librería", "Futbol", "Excursiones", "Materiales", "Matricula", "Libros", "Maestra Particular", "Kiosco", "Comedor", "Otros", "Campamento 4 P"], "Animales": ["Comida", "Veterinario", "Roturas", "Higiene", "Otros", "Gallinas - Otros", "Gallinas - Comida", "Caballos - Comida", "Conejos - Comida", "Conejos - Aserrin", "Conejos - Otros", "Conejos - Veterinario", "Caballo - Compra", "Caballo - Accesorios", "Caballo - Comida", "Caballo - Herrada", "Pez - Compra", "Pez - Accesorios", "Pez - Comida", "Caballo - Desparasitar"], "Alquiler": ["Mes", "Reserva", "Otros", "Depósito"], "Otros": ["Ropa", "Regalo Jose", "Regalo Mio", "Kiosco", "Desayuno/Te", "Otros", "Averiguar que es", "Regalos", "Celu/Compu/Elctronica", "Farmacia/Medicos", "Comedor", "Festejos", "Historia", "Mudanza", "Cobrado de Más Recuperar", "Hacer Cerveza/Barra", "Documentos/Tramites", "Futbol/Deportes", "Lugar para trabajar", "Librería", "Leña", "Curso", "Financiar salida", "Peluqueria", "Sacar plata con TC mediante MP", "Sacar efectivo de cuentas", "Comedor - Trabajo"], "Prestar": ["Vale", "Loli", "Mikel", "Otros", "Financiar Salida", "Gaita", "Pipe Bonello", "Juntar Plata para gastos entre varios", "Myriam", "Lore"], "Salidas": ["Salir a comer", "Cine", "Ir a tomar algo", "Salida con los chicos/as", "Salida Jose", "Pedir Delivery", "Ir a comer a lo de alguien", "Otros", "Invitar a Casa", "Salidas deportivas", "Heladeria", "A tomar el te", "Desayunar", "Salidas familiares", "Reuniones Matrimonios", "Salida con los enanos"], "Bebes": ["Ropa", "Accesorios", "Festejos", "Documentos/tramites", "Pañales", "Leche Infantil", "Regalos", "Higiene", "Invitar amigos", "Fono", "Taller", "Deportes", "Otros", "Guitarra", "Carpinteria", "Figuritas", "Peluqueria", "Juguetes/Juegos de Mesa", "Bicis", "Taekwando"], "Terapias": ["T.O.", "Gimnasia Infantil", "Psicologa", "Psicopedagoga", "Psiquiatra", "Glifing", "Fono"], "Vacaciones": ["Alquiler", "Auto Nafta", "Auto Peaje", "Auto Estacionamiento", "Hotel", "Pasajes", "Salidas/Excursiones", "Alquiler Auto", "Seguro medico", "Comer Afuera", "Desayuno/Te", "Compras", "Kiosko", "Taxi/Transporte", "Otros", "Balneario", "Regalos", "Ropa"], "Credito": ["SR8", "YPF2", "Otros", "Prendario", "Hipotecario"], "Inversiones": ["Vacas", "Dolares", "Acciones", "Plazo Fijo", "Departamento", "Bonos - AL30", "Otros", "Exportaciones"], "Jose": ["Otros"], "Auto": ["Nafta", "Peaje", "Arreglo", "Limpieza", "Estacionamiento", "Service", "Seguro", "Repuestos", "Cubiertas", "Lubricantes", "Multa", "Otros", "Compra", "Transferencia"], "TC": ["Visa Mia", "Amex Mia", "Visa Viejo", "Master Viejo", "Visa Mama", "Visa Galicia", "Master Galicia"], "Compras": ["Comida Otros", "Verduleria", "Carniceria", "Pastas", "Pescados", "Limpieza/Cocina", "Leche", "Cocina", "Lavadero", "Baño/Higiene", "Agua", "Comida - Recreos", "Sin Detalle", "Otros", "Pan", "Picada en casa con los enanos"], "Transporte": ["SUBE", "Charter", "Tren", "Bondi", "Taxi", "Remis", "Pasajes", "Pool", "Monopatin", "Uber", "Vuelo a CR/LH por YPF", "Otros", "Hotel viaje a LH"], "Casa": ["Muebles", "Electrodomésticos", "Jardin", "Pileta", "Huerta", "Arreglos", "Decoración", "Fumigación/Higiene", "Juegos de Cama/Descanso", "Cocina/Limpieza", "Baños", "Cerrajero", "Jardinero", "Herramientas", "Pintar", "Piletero", "Gasista", "Seguro", "Electricista", "Otros", "Atmosféricos", "Cuartos"], "Viajes_y_Campo": ["Nafta", "Peajes", "Hotel", "Comidas", "Paseos", "Kiosko", "Compras", "Otros"], "Averiguar": ["Averiguar que es"], "Regalos para los chicos": ["Toto", "Meme", "Juanpi", "Titu", "Santi", "Tarso", "Pío"], "Donar": ["Iglesia", "Otros", "Propina"], "Intereses_TC": ["Intereses", "Impuestos sobre intereses", "Impuestos Gastos en USD"], "Descuento": ["Bonificación TC"], "Gasto a Rendir/Recuperar": ["OSDE - Recuperar", "Gasto por trabajo - Rendir"], "Computadora": ["Compra"], "Compra de la Casa": ["Escribano", "Pago de la casa", "Tramites"]},
+  rubrosIngreso: {"Sueldo Mio": ["Sueldo", "Aguinaldo", "Bono", "Vacaciones", "Otros", "Guarderia/Niñera", "Lic Paternidad", "Devolución de ganancias"], "Sueldo Jose": ["Sueldo", "Aguinaldo", "Bono", "Vacaciones", "Reintegro Gastos"], "Inversiones": ["Vacas", "Dolares", "Acciones", "Plazo Fijo", "Departamento", "Intereses MP", "Interes Fondos Comunes", "Terreno", "Intereses Cuenta", "Intereses Cuenta Jose", "Bonos - AL30", "Intereses Uala", "Intereses Fima"], "Otros": ["Otros", "Financiar salida", "Reintegro Galeno", "Prestado", "Regalos para Jose", "Juntar Plata para gastos entre varios"], "Prestamo": ["Prestamo", "Le presté a Vale", "Rami y Michu", "Pipe B", "Vale", "Papá y Mamá", "Manu", "Silvia"], "Credito": ["SR2", "SR1", "SR3", "Pasar TC por MP", "Prendario", "Hipotecario"], "Regalos para los chicos": ["Toto", "Meme", "Juanpi", "Titu", "Santi", "Tarso", "Pío"], "Animales": ["Venta de Cachorros"]},
+  rubrosEgresoList: ["Trabajo_Jose", "Prestamo", "Limpieza", "Servicios_e_impuestos", "Colegio", "Animales", "Alquiler", "Otros", "Prestar", "Salidas", "Bebes", "Terapias", "Vacaciones", "Credito", "Inversiones", "Jose", "Auto", "TC", "Compras", "Transporte", "Casa", "Viajes_y_Campo", "Averiguar", "Regalos para los chicos", "Donar", "Intereses_TC", "Descuento", "Gasto a Rendir/Recuperar", "Computadora", "Compra de la Casa"],
+  rubrosIngresoList: ["Sueldo Mio", "Sueldo Jose", "Inversiones", "Otros", "Prestamo", "Credito", "Regalos para los chicos", "Animales"],
+  formasPago: ["Efectivo","Santander","MP Agus","Credito - Visa Mia","Credito - Visa Viejo","Credito - Master Viejo","Uala","MP Jose","Galicia","App YPF","Balanz","Credito - Visa Mama","Cuenta DNI Agus","Galicia Agus","Credito - Master Galicia","Credito - Visa Galicia","Credito - MP Agus"]
+};
+
+let isRecording = false;
+let recognition = null;
+let entries = [];
+let apiKey = '';
+let webhookUrl = '';
+let currentMode = 'single';
+let multiItems = [];
+let multiItemCounter = 0;
+
+function init() {
+  document.getElementById('today-label').textContent = new Date().toLocaleDateString('es-AR', {weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('fecha').valueAsDate = new Date();
+
+  apiKey = localStorage.getItem('anthropic_api_key') || '';
+  document.getElementById('apiKeyInput').value = apiKey;
+  webhookUrl = localStorage.getItem('webhook_url') || 'https://73bf8a4938b8e9a28c5892774d5710.e9.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/f72a4849ff3747ccbd70d82ec7643533/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=AfDN9yS9ly37Vc180Vq5D4hNYpYQDRmz9zhnhKyDUqM';
+  document.getElementById('webhookInput').value = webhookUrl;
+
+  entries = JSON.parse(localStorage.getItem('gasto_entries') || '[]');
+  renderRecent();
+  filterRubros();
+  populateFormaPago();
+
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    document.getElementById('voiceBtn').style.display = 'none';
+  }
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('tab-single').classList.toggle('active', mode === 'single');
+  document.getElementById('tab-multi').classList.toggle('active', mode === 'multi');
+  document.getElementById('single-mode').style.display = mode === 'single' ? 'block' : 'none';
+  document.getElementById('multi-mode').style.display = mode === 'multi' ? 'block' : 'none';
+  document.getElementById('submitBtn').textContent = mode === 'single' ? 'Guardar registro' : 'Guardar todos los registros';
+  if (mode === 'multi' && multiItems.length === 0) addMultiItem();
+}
+
+function makeRubroSelect(id, onchange) {
+  const tipo = document.getElementById('tipo').value;
+  const list = tipo === 'Egreso' ? DATA.rubrosEgresoList : DATA.rubrosIngresoList;
+  const sel = document.createElement('select');
+  sel.id = id;
+  sel.onchange = onchange;
+  sel.innerHTML = '<option value="">Rubro...</option>';
+  list.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r.replace(/_/g,' '); sel.appendChild(o); });
+  return sel;
+}
+
+function makeSubrubroSelect(id, rubro) {
+  const tipo = document.getElementById('tipo').value;
+  const map = tipo === 'Egreso' ? DATA.rubrosEgreso : DATA.rubrosIngreso;
+  const subs = map[rubro] || [];
+  const sel = document.createElement('select');
+  sel.id = id;
+  sel.innerHTML = '<option value="">Sub rubro...</option>';
+  subs.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o); });
+  return sel;
+}
+
+function addMultiItem() {
+  // Capture previous rubro BEFORE pushing new item
+  let prevRubro = '';
+  if (multiItems.length > 0) {
+    const lastIdx = multiItems[multiItems.length - 1].idx;
+    prevRubro = document.getElementById('mi-rubro-' + lastIdx)?.value || '';
+  }
+
+  multiItemCounter++;
+  const idx = multiItemCounter;
+  multiItems.push({ idx });
+
+  const container = document.getElementById('multi-items-container');
+  const div = document.createElement('div');
+  div.className = 'multi-item';
+  div.id = 'multi-item-' + idx;
+
+  const header = document.createElement('div');
+  header.className = 'multi-item-header';
+  const num = document.createElement('span');
+  num.className = 'multi-item-num';
+  num.textContent = 'Ítem ' + multiItems.length;
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'remove-item-btn';
+  removeBtn.textContent = '×';
+  removeBtn.onclick = () => removeMultiItem(idx);
+  header.appendChild(num);
+  header.appendChild(removeBtn);
+
+  const row = document.createElement('div');
+  row.className = 'row2';
+  row.style.marginBottom = '8px';
+
+  const rubroWrap = document.createElement('div');
+  const rubroSel = makeRubroSelect('mi-rubro-' + idx, () => {
+    const rubro = document.getElementById('mi-rubro-' + idx).value;
+    const subWrap = document.getElementById('mi-sub-wrap-' + idx);
+    subWrap.innerHTML = '';
+    subWrap.appendChild(makeSubrubroSelect('mi-sub-' + idx, rubro));
+    updateMultiSummary();
+  });
+  rubroWrap.appendChild(rubroSel);
+
+  const subWrap = document.createElement('div');
+  subWrap.id = 'mi-sub-wrap-' + idx;
+  subWrap.appendChild(makeSubrubroSelect('mi-sub-' + idx, prevRubro));
+  row.appendChild(rubroWrap);
+  row.appendChild(subWrap);
+
+  const montoInput = document.createElement('input');
+  montoInput.type = 'number';
+  montoInput.id = 'mi-monto-' + idx;
+  montoInput.placeholder = 'Monto ($)';
+  montoInput.inputMode = 'decimal';
+  montoInput.style.marginBottom = '8px';
+  montoInput.oninput = updateMultiSummary;
+
+  const comentarioInput = document.createElement('input');
+  comentarioInput.type = 'text';
+  comentarioInput.id = 'mi-comentario-' + idx;
+  comentarioInput.placeholder = 'Comentario del ítem (opcional)';
+  comentarioInput.style.marginBottom = '0';
+
+  div.appendChild(header);
+  div.appendChild(row);
+  div.appendChild(montoInput);
+  div.appendChild(comentarioInput);
+  container.appendChild(div);
+
+  // Set rubro AFTER element is in DOM
+  if (prevRubro) {
+    document.getElementById('mi-rubro-' + idx).value = prevRubro;
+    document.getElementById('mi-sub-wrap-' + idx).innerHTML = '';
+    document.getElementById('mi-sub-wrap-' + idx).appendChild(makeSubrubroSelect('mi-sub-' + idx, prevRubro));
+  }
+
+  updateMultiSummary();
+}
+
+function removeMultiItem(idx) {
+  multiItems = multiItems.filter(i => i.idx !== idx);
+  const el = document.getElementById('multi-item-' + idx);
+  if (el) el.remove();
+  renumberMultiItems();
+  updateMultiSummary();
+  if (multiItems.length === 0) addMultiItem();
+}
+
+function renumberMultiItems() {
+  const nums = document.querySelectorAll('.multi-item-num');
+  nums.forEach((el, i) => { el.textContent = 'Ítem ' + (i + 1); });
+}
+
+function rebuildMultiItems() {
+  const tipo = document.getElementById('tipo').value;
+  const list = tipo === 'Egreso' ? DATA.rubrosEgresoList : DATA.rubrosIngresoList;
+  const map = tipo === 'Egreso' ? DATA.rubrosEgreso : DATA.rubrosIngreso;
+  multiItems.forEach(item => {
+    const idx = item.idx;
+    const rubroSel = document.getElementById('mi-rubro-' + idx);
+    if (!rubroSel) return;
+    const prev = rubroSel.value;
+    rubroSel.innerHTML = '<option value="">Rubro...</option>';
+    list.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r.replace(/_/g,' '); rubroSel.appendChild(o); });
+    if (list.includes(prev)) {
+      rubroSel.value = prev;
+      const subWrap = document.getElementById('mi-sub-wrap-' + idx);
+      if (subWrap) {
+        subWrap.innerHTML = '';
+        subWrap.appendChild(makeSubrubroSelect('mi-sub-' + idx, prev));
+      }
+    }
+  });
+}
+
+function updateMultiSummary() {
+  let total = 0;
+  let count = 0;
+  multiItems.forEach(item => {
+    const v = parseFloat(document.getElementById('mi-monto-' + item.idx)?.value || 0);
+    if (v > 0) { total += v; count++; }
+  });
+  document.getElementById('multi-count').textContent = multiItems.length + ' ítem' + (multiItems.length !== 1 ? 's' : '') + (count !== multiItems.length ? ' (' + count + ' con monto)' : '');
+  document.getElementById('multi-total').textContent = '$' + total.toLocaleString('es-AR');
+}
+
+function filterRubros() {
+  const tipo = document.getElementById('tipo').value;
+  const list = tipo === 'Egreso' ? DATA.rubrosEgresoList : DATA.rubrosIngresoList;
+  const sel = document.getElementById('rubro');
+  sel.innerHTML = '<option value="">Seleccionar...</option>';
+  list.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r.replace(/_/g,' '); sel.appendChild(o); });
+  document.getElementById('subrubro').innerHTML = '<option value="">Seleccionar...</option>';
+}
+
+function filterSubrubros(rubroVal) {
+  const tipo = document.getElementById('tipo').value;
+  const rubro = rubroVal || document.getElementById('rubro').value;
+  if (rubroVal) document.getElementById('rubro').value = rubro;
+  const map = tipo === 'Egreso' ? DATA.rubrosEgreso : DATA.rubrosIngreso;
+  const subs = map[rubro] || [];
+  const sel = document.getElementById('subrubro');
+  sel.innerHTML = '<option value="">Seleccionar...</option>';
+  subs.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; sel.appendChild(o); });
+}
+
+function populateFormaPago() {
+  const sel = document.getElementById('formaPago');
+  DATA.formasPago.forEach(f => { const o = document.createElement('option'); o.value = f; o.textContent = f; sel.appendChild(o); });
+}
+
+function toggleRecording() {
+  if (isRecording) stopRecording();
+  else startRecording();
+}
+
+function startRecording() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) { showToast('Tu navegador no soporta reconocimiento de voz', 'error'); return; }
+
+  recognition = new SpeechRecognition();
+  recognition.lang = 'es-AR';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  recognition.onresult = (e) => {
+    const transcript = e.results[0][0].transcript;
+    processTranscript(transcript);
+  };
+  recognition.onerror = (e) => {
+    showToast('Error al grabar: ' + e.error, 'error');
+    stopRecording();
+  };
+  recognition.onend = () => { if (isRecording) stopRecording(); };
+
+  recognition.start();
+  isRecording = true;
+  document.getElementById('voiceBtn').classList.add('recording');
+  document.getElementById('voiceIcon').textContent = '⏹️';
+  document.getElementById('voiceLabel').textContent = 'Grabando... tocá para detener';
+}
+
+function stopRecording() {
+  if (recognition) recognition.stop();
+  isRecording = false;
+  document.getElementById('voiceBtn').classList.remove('recording');
+  document.getElementById('voiceIcon').textContent = '🎙️';
+  document.getElementById('voiceLabel').textContent = 'Tocá para hablar';
+}
+
+async function processTranscript(transcript) {
+  if (!apiKey) {
+    showToast('Configurá tu API Key en ⚙️ para usar la IA', 'error');
+    document.getElementById('aiPreview').classList.add('visible');
+    document.getElementById('aiTranscript').textContent = '"' + transcript + '"';
+    document.getElementById('aiResult').textContent = 'Sin API Key no puedo interpretar el audio.';
+    return;
+  }
+
+  document.getElementById('aiPreview').classList.add('visible');
+  document.getElementById('aiTranscript').textContent = '"' + transcript + '"';
+  document.getElementById('aiResult').textContent = '⏳ Interpretando...';
+
+  try {
+  const allRubros = Object.assign({}, DATA.rubrosEgreso, DATA.rubrosIngreso);
+  const rubrosFlat = Object.keys(allRubros).map(r => r.replace(/_/g,' ')).join(', ');
+  const subsList = Object.entries(allRubros).map(([r,ss]) => r.replace(/_/g,' ') + ': ' + ss.join(', ')).join('\n');
+
+  const prompt = `Sos un asistente que interpreta registros de gastos personales en Argentina.
+Dado el siguiente audio transcripto, extrae los datos del gasto. Respondé SOLO con un JSON válido, sin texto extra, sin backticks.
+
+RUBROS DISPONIBLES: ${rubrosFlat}
+SUBRUBROS POR RUBRO:
+${subsList}
+FORMAS DE PAGO: ${DATA.formasPago.join(', ')}
+
+INSTRUCCIONES:
+- tipo: "Egreso" o "Ingreso"
+- rubro: debe ser EXACTAMENTE uno de los rubros listados (con guiones bajos si los tiene en el original)
+- subrubro: debe ser EXACTAMENTE uno de los subrubros del rubro elegido
+- monto: número sin símbolos. Si dice "doscientos" = 200, "mil quinientos" = 1500, etc.
+- formaPago: debe ser EXACTAMENTE una de las formas de pago listadas. Si no se menciona, usar "Efectivo".
+- nota: descripción adicional si la hay, sino ""
+- confianza: "alta", "media" o "baja"
+
+AUDIO: "${transcript}"
+
+Respondé solo con JSON:`;
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 500, messages: [{ role: 'user', content: prompt }] })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content[0].text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(text);
+
+    document.getElementById('tipo').value = parsed.tipo || 'Egreso';
+    filterRubros();
+    if (parsed.rubro) { filterSubrubros(parsed.rubro); }
+    if (parsed.subrubro) document.getElementById('subrubro').value = parsed.subrubro;
+    if (parsed.monto) document.getElementById('monto').value = parsed.monto;
+    if (parsed.formaPago) document.getElementById('formaPago').value = parsed.formaPago;
+    if (parsed.nota) document.getElementById('nota').value = parsed.nota;
+
+    const conf = { alta: '✅', media: '⚠️', baja: '❓' }[parsed.confianza] || '✅';
+    document.getElementById('aiResult').innerHTML = 
+      `${conf} <b>${(parsed.rubro||'').replace(/_/g,' ')}</b> → ${parsed.subrubro || ''} · <b>$${Number(parsed.monto||0).toLocaleString('es-AR')}</b> · ${parsed.formaPago || ''}`;
+
+  } catch (err) {
+    document.getElementById('aiResult').textContent = '❌ Error: ' + err.message;
+    showToast('Error al interpretar con IA', 'error');
+  }
+}
+
+async function sendToSharePoint(entry) {
+  if (!webhookUrl) return;
+  try {
+    const body = {
+      fecha: entry.fecha + 'T12:00:00Z',
+      monto: entry.monto,
+      comentario: entry.nota || '',
+      rubro: entry.rubro,
+      subrubro: entry.subrubro,
+      tipo: entry.tipo,
+      formaPago: entry.formaPago,
+      moneda: entry.moneda || 'ARP'
+    };
+    if (entry.cuotas != null) body.cuotas = entry.cuotas;
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+  } catch (e) {
+    console.warn('SharePoint sync error:', e);
+  }
+}
+
+function submitEntry() {
+  const tipo = document.getElementById('tipo').value;
+  const fecha = document.getElementById('fecha').value;
+  const formaPago = document.getElementById('formaPago').value;
+
+  if (!formaPago) { showToast('Seleccioná la forma de pago', 'error'); return; }
+
+  if (currentMode === 'single') {
+    const rubro = document.getElementById('rubro').value;
+    const subrubro = document.getElementById('subrubro').value;
+    const monto = document.getElementById('monto').value;
+    const nota = document.getElementById('nota').value;
+    if (!rubro || !subrubro || !monto) { showToast('Completá rubro, subrubro y monto', 'error'); return; }
+    const moneda = document.getElementById('moneda').value;
+    const cuotasVal = document.getElementById('cuotas').value.trim();
+    const cuotas = cuotasVal ? parseInt(cuotasVal) : null;
+    const entry = { id: Date.now(), tipo, rubro, subrubro, monto: parseFloat(monto), fecha, formaPago, moneda, cuotas, nota, ts: new Date().toISOString() };
+    entries.unshift(entry);
+    localStorage.setItem('gasto_entries', JSON.stringify(entries));
+    sendToSharePoint(entry);
+    renderRecent();
+    resetForm();
+    document.getElementById('aiPreview').classList.remove('visible');
+    showToast('Registro guardado ✓', 'success');
+
+  } else {
+    const notaGeneral = document.getElementById('multi-nota').value.trim();
+    const moneda = document.getElementById('moneda').value;
+    const cuotasVal = document.getElementById('cuotas').value.trim();
+    const cuotas = cuotasVal ? parseInt(cuotasVal) : null;
+    const newEntries = [];
+    let hasError = false;
+    multiItems.forEach(item => {
+      const rubro = document.getElementById('mi-rubro-' + item.idx)?.value;
+      const subrubro = document.getElementById('mi-sub-' + item.idx)?.value;
+      const monto = document.getElementById('mi-monto-' + item.idx)?.value;
+      const notaItem = document.getElementById('mi-comentario-' + item.idx)?.value.trim() || '';
+      if (!rubro || !subrubro || !monto) { hasError = true; return; }
+      let comentario = notaGeneral;
+      if (notaItem) comentario = comentario ? comentario + ' - ' + notaItem : notaItem;
+      newEntries.push({ id: Date.now() + Math.random(), tipo, rubro, subrubro, monto: parseFloat(monto), fecha, formaPago, moneda, cuotas, nota: comentario, ts: new Date().toISOString() });
+    });
+    if (hasError) { showToast('Completá todos los ítems (rubro, sub rubro y monto)', 'error'); return; }
+    if (!newEntries.length) { showToast('Agregá al menos un ítem', 'error'); return; }
+    entries.unshift(...newEntries);
+    localStorage.setItem('gasto_entries', JSON.stringify(entries));
+    newEntries.forEach(e => sendToSharePoint(e));
+    renderRecent();
+    resetForm();
+    showToast(newEntries.length + ' registros guardados ✓', 'success');
+  }
+}
+
+function resetForm() {
+  document.getElementById('monto').value = '';
+  document.getElementById('nota').value = '';
+  document.getElementById('fecha').valueAsDate = new Date();
+  document.getElementById('rubro').value = '';
+  document.getElementById('subrubro').innerHTML = '<option value="">Seleccionar...</option>';
+  document.getElementById('formaPago').value = '';
+  document.getElementById('moneda').value = 'ARP';
+  document.getElementById('cuotas').value = '';
+  // reset multi
+  multiItems = [];
+  multiItemCounter = 0;
+  document.getElementById('multi-items-container').innerHTML = '';
+  document.getElementById('multi-nota').value = '';
+  updateMultiSummary();
+  if (currentMode === 'multi') addMultiItem();
+}
+
+const iconMap = { Compras:'🛒', Auto:'🚗', Salidas:'🍽️', Colegio:'🎒', Animales:'🐾', Casa:'🏠', Transporte:'🚌', Vacaciones:'✈️', Servicios_e_impuestos:'💡', Inversiones:'📈', 'Sueldo Mio':'💰', 'Sueldo Jose':'💰', TC:'💳', Terapias:'🩺', Bebes:'👶', Limpieza:'🧹', default:'📝' };
+
+function renderRecent() {
+  const container = document.getElementById('recentList');
+  if (!entries.length) { container.innerHTML = '<div class="empty-state">Sin registros aún</div>'; return; }
+  const recent = entries.slice(0, 10);
+  container.innerHTML = recent.map(e => {
+    const icon = iconMap[e.rubro] || iconMap.default;
+    const fechaStr = e.fecha ? new Date(e.fecha + 'T12:00:00').toLocaleDateString('es-AR', {day:'numeric',month:'short'}) : '';
+    const amountClass = e.tipo === 'Ingreso' ? 'ingreso' : '';
+    const sign = e.tipo === 'Ingreso' ? '+' : '-';
+    return `<div class="entry-item" onclick="showDetail('${e.id}')">
+      <div class="entry-icon">${icon}</div>
+      <div class="entry-info">
+        <div class="entry-title">${e.subrubro}</div>
+        <div class="entry-sub">${e.rubro.replace(/_/g,' ')} · ${fechaStr} · ${e.formaPago}</div>
+      </div>
+      <div class="entry-amount ${amountClass}">${sign}$${e.monto.toLocaleString('es-AR')}</div>
+    </div>`;
+  }).join('');
+}
+
+function showDetail(id) {
+  const e = entries.find(en => String(en.id) === String(id));
+  if (!e) return;
+  const icon = iconMap[e.rubro] || iconMap.default;
+  const fechaStr = e.fecha ? new Date(e.fecha + 'T12:00:00').toLocaleDateString('es-AR', {weekday:'long', day:'numeric', month:'long', year:'numeric'}) : '—';
+  const sign = e.tipo === 'Ingreso' ? '+' : '-';
+  const amountClass = e.tipo === 'Ingreso' ? 'ingreso' : 'egreso';
+  const rows = [
+    ['Tipo', `<span class="detail-tipo-badge badge-${e.tipo}">${e.tipo}</span>`],
+    ['Fecha', fechaStr],
+    ['Rubro', e.rubro.replace(/_/g,' ')],
+    ['Sub rubro', e.subrubro],
+    ['Forma de pago', e.formaPago],
+    ['Moneda', e.moneda || 'ARP'],
+    ['Cuotas', e.cuotas != null ? e.cuotas : '—'],
+    ['Comentario', e.nota || '—'],
+  ];
+  document.getElementById('detail-body').innerHTML = `
+    <div class="detail-amount-card">
+      <div class="detail-icon" style="font-size:32px;margin-bottom:8px">${icon}</div>
+      <div class="amount ${amountClass}">${sign}$${e.monto.toLocaleString('es-AR')}</div>
+      <div class="sub">${e.subrubro}</div>
+    </div>
+    <div class="card">
+      <div class="card-section">
+        ${rows.map(([l,v]) => `<div class="detail-row"><span class="lbl">${l}</span><span class="val">${v}</span></div>`).join('')}
+      </div>
+    </div>
+  `;
+  document.getElementById('detail-screen').classList.add('visible');
+}
+function hideDetail() { document.getElementById('detail-screen').classList.remove('visible'); }
+
+function showConfig() { document.getElementById('config-screen').classList.add('visible'); }
+function hideConfig() { document.getElementById('config-screen').classList.remove('visible'); }
+
+function saveConfig() {
+  apiKey = document.getElementById('apiKeyInput').value.trim();
+  localStorage.setItem('anthropic_api_key', apiKey);
+  webhookUrl = document.getElementById('webhookInput').value.trim();
+  localStorage.setItem('webhook_url', webhookUrl);
+  showToast('Configuración guardada ✓', 'success');
+  hideConfig();
+}
+
+function exportCSV() {
+  if (!entries.length) { showToast('No hay registros para exportar', 'error'); return; }
+  const headers = ['Fecha','Tipo','Rubro','Subrubro','Monto','FormaPago','Nota'];
+  const rows = entries.map(e => [e.fecha, e.tipo, e.rubro, e.subrubro, e.monto, e.formaPago, e.nota || ''].map(v => '"'+String(v).replace(/"/g,'""')+'"').join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'gastos_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function clearAll() {
+  if (confirm('¿Seguro que querés borrar todos los registros? Esta acción no se puede deshacer.')) {
+    entries = [];
+    localStorage.removeItem('gasto_entries');
+    renderRecent();
+    showToast('Registros borrados');
+    hideConfig();
+  }
+}
+
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.classList.remove('show'); }, 2500);
+}
+
+init();
+</script>
+</body>
+</html>
