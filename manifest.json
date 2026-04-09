@@ -2,7 +2,7 @@
   "name": "Registro de Gastos",
   "short_name": "Gastos",
   "description": "App personal de registro de gastos con voz",
-  "start_url": "/index.html",
+  "start_url": "/gastos-app/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#5B4BD5",
