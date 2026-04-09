@@ -567,9 +567,10 @@
       <div class="section-label">Datos del registro</div>
 
       <!-- Mode tabs -->
-      <div class="mode-tabs">
+      <div class="mode-tabs" style="grid-template-columns:1fr 1fr 1fr">
         <button class="mode-tab active" id="tab-single" onclick="setMode('single')">Registro único</button>
         <button class="mode-tab" id="tab-multi" onclick="setMode('multi')">Compra múltiple</button>
+        <button class="mode-tab" id="tab-ticket" onclick="setMode('ticket')">Ticket/Foto</button>
       </div>
 
       <!-- Common fields (always visible) -->
@@ -645,6 +646,37 @@
         <div class="multi-summary">
           <span id="multi-count">0 ítems</span>
           <span id="multi-total">$0</span>
+        </div>
+      </div>
+
+      <!-- TICKET MODE -->
+      <div id="ticket-mode" style="display:none">
+        <div class="field">
+          <label>Comentario general (opcional)</label>
+          <input type="text" id="ticket-nota" placeholder="Ej: Carrefour, Coto..." />
+        </div>
+        <div class="field">
+          <label>Foto del ticket</label>
+          <label id="ticket-upload-label" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:20px;border:1.5px dashed var(--border2);border-radius:var(--r);background:var(--bg2);cursor:pointer;color:var(--text2);font-size:14px;font-weight:400">
+            <span style="font-size:32px">📷</span>
+            <span id="ticket-upload-text">Tocá para subir una foto</span>
+            <input type="file" id="ticket-file" accept="image/*" capture="environment" style="display:none" onchange="handleTicketPhoto(this)" />
+          </label>
+        </div>
+        <div id="ticket-preview" style="display:none;margin-bottom:12px">
+          <img id="ticket-img" style="width:100%;border-radius:var(--r-sm);border:0.5px solid var(--border)" />
+        </div>
+        <div id="ticket-analyzing" style="display:none;text-align:center;padding:16px;color:var(--text2);font-size:14px">
+          <div style="font-size:24px;margin-bottom:8px">🤖</div>
+          Analizando ticket...
+        </div>
+        <div id="ticket-table-wrap" style="display:none">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:8px">Revisá y corregí si hace falta:</div>
+          <div id="ticket-items-container"></div>
+          <div class="multi-summary" style="margin-top:8px">
+            <span id="ticket-count">0 ítems</span>
+            <span id="ticket-total">$0</span>
+          </div>
         </div>
       </div>
     </div>
@@ -739,6 +771,7 @@ let webhookUrl = '';
 let currentMode = 'single';
 let multiItems = [];
 let multiItemCounter = 0;
+let ticketItems = [];
 
 function init() {
   document.getElementById('today-label').textContent = new Date().toLocaleDateString('es-AR', {weekday:'long',day:'numeric',month:'long'});
@@ -763,9 +796,12 @@ function setMode(mode) {
   currentMode = mode;
   document.getElementById('tab-single').classList.toggle('active', mode === 'single');
   document.getElementById('tab-multi').classList.toggle('active', mode === 'multi');
+  document.getElementById('tab-ticket').classList.toggle('active', mode === 'ticket');
   document.getElementById('single-mode').style.display = mode === 'single' ? 'block' : 'none';
   document.getElementById('multi-mode').style.display = mode === 'multi' ? 'block' : 'none';
-  document.getElementById('submitBtn').textContent = mode === 'single' ? 'Guardar registro' : 'Guardar todos los registros';
+  document.getElementById('ticket-mode').style.display = mode === 'ticket' ? 'block' : 'none';
+  const labels = { single: 'Guardar registro', multi: 'Guardar todos los registros', ticket: 'Agrupar y guardar registros' };
+  document.getElementById('submitBtn').textContent = labels[mode];
   if (mode === 'multi' && multiItems.length === 0) addMultiItem();
 }
 
@@ -1047,6 +1083,149 @@ Respondé solo con JSON:`;
   }
 }
 
+async function handleTicketPhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  if (!apiKey) { showToast('Configurá tu API Key para usar esta función', 'error'); return; }
+
+  const file = input.files[0];
+  document.getElementById('ticket-upload-text').textContent = file.name;
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = e.target.result.split(',')[1];
+    const mime = file.type;
+
+    document.getElementById('ticket-preview').style.display = 'block';
+    document.getElementById('ticket-img').src = e.target.result;
+    document.getElementById('ticket-analyzing').style.display = 'block';
+    document.getElementById('ticket-table-wrap').style.display = 'none';
+
+    const rubrosEgreso = DATA.rubrosEgreso;
+    const subsList = Object.entries(rubrosEgreso).map(([r,ss]) => r.replace(/_/g,' ') + ': ' + ss.join(', ')).join('
+');
+
+    const prompt = `Analizá este ticket de compra y extraé TODOS los ítems con sus montos finales (después de descuentos).
+Para cada ítem, asigná el rubro y subrubro MÁS apropiado de la siguiente lista.
+
+RUBROS Y SUBRUBROS DISPONIBLES:
+${subsList}
+
+Respondé SOLO con un JSON array, sin texto extra, sin backticks. Formato:
+[{"item":"nombre del producto","monto":1234.56,"rubro":"Compras","subrubro":"Comida Otros"}, ...]
+
+IMPORTANTE:
+- monto debe ser el precio final pagado (después de descuentos)
+- Para snacks/golosinas/picada usar rubro "Compras" subrubro "Picada en casa con los enanos"
+- Para lácteos usar "Compras" → "Leche"
+- Para bebidas alcohólicas usar "Salidas" → "Invitar a Casa"
+- Para limpieza/higiene del hogar usar "Compras" → "Limpieza/Cocina"
+- Para carnes usar "Compras" → "Carniceria"
+- Para verduras usar "Compras" → "Verduleria"
+- Si no sabés, usá "Compras" → "Comida Otros"`;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2000,
+          messages: [{ role: 'user', content: [
+            { type: 'image', source: { type: 'base64', media_type: mime, data: base64 } },
+            { type: 'text', text: prompt }
+          ]}]
+        })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      const text = data.content[0].text.replace(/```json|```/g,'').trim();
+      ticketItems = JSON.parse(text);
+      document.getElementById('ticket-analyzing').style.display = 'none';
+      document.getElementById('ticket-table-wrap').style.display = 'block';
+      renderTicketItems();
+    } catch(err) {
+      document.getElementById('ticket-analyzing').style.display = 'none';
+      showToast('Error al analizar ticket: ' + err.message, 'error');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function makeTicketRubroSel(idx, val) {
+  const tipo = document.getElementById('tipo').value;
+  const list = tipo === 'Egreso' ? DATA.rubrosEgresoList : DATA.rubrosIngresoList;
+  const sel = document.createElement('select');
+  sel.style.cssText = 'width:100%;font-size:12px;padding:5px 6px;margin-bottom:6px';
+  list.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r.replace(/_/g,' '); if(r===val) o.selected=true; sel.appendChild(o); });
+  sel.onchange = () => {
+    const map = tipo === 'Egreso' ? DATA.rubrosEgreso : DATA.rubrosIngreso;
+    const subSel = document.getElementById('ti-sub-'+idx);
+    subSel.innerHTML = '';
+    (map[sel.value]||[]).forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; subSel.appendChild(o); });
+    ticketItems[idx].rubro = sel.value;
+    ticketItems[idx].subrubro = subSel.value;
+  };
+  return sel;
+}
+
+function makeTicketSubSel(idx, rubro, val) {
+  const tipo = document.getElementById('tipo').value;
+  const map = tipo === 'Egreso' ? DATA.rubrosEgreso : DATA.rubrosIngreso;
+  const subs = map[rubro] || [];
+  const sel = document.createElement('select');
+  sel.id = 'ti-sub-' + idx;
+  sel.style.cssText = 'width:100%;font-size:12px;padding:5px 6px';
+  subs.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; if(s===val) o.selected=true; sel.appendChild(o); });
+  sel.onchange = () => { ticketItems[idx].subrubro = sel.value; };
+  return sel;
+}
+
+function renderTicketItems() {
+  const container = document.getElementById('ticket-items-container');
+  container.innerHTML = '';
+  let total = 0;
+  ticketItems.forEach((it, i) => {
+    total += it.monto || 0;
+    const div = document.createElement('div');
+    div.className = 'multi-item';
+
+    const header = document.createElement('div');
+    header.className = 'multi-item-header';
+    const num = document.createElement('span');
+    num.className = 'multi-item-num';
+    num.textContent = it.item.length > 30 ? it.item.slice(0,30)+'…' : it.item;
+    num.style.maxWidth = '200px';
+    num.style.overflow = 'hidden';
+    num.style.textOverflow = 'ellipsis';
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-item-btn';
+    removeBtn.textContent = '×';
+    removeBtn.onclick = () => { ticketItems.splice(i,1); renderTicketItems(); };
+    header.appendChild(num);
+    header.appendChild(removeBtn);
+
+    const montoInput = document.createElement('input');
+    montoInput.type = 'number';
+    montoInput.value = it.monto;
+    montoInput.style.cssText = 'width:100%;font-size:14px;font-weight:600;margin-bottom:8px;padding:6px 10px;border:0.5px solid var(--border2);border-radius:var(--r-sm);background:var(--bg2);color:var(--text)';
+    montoInput.oninput = () => { ticketItems[i].monto = parseFloat(montoInput.value)||0; updateTicketSummary(); };
+
+    div.appendChild(header);
+    div.appendChild(montoInput);
+    div.appendChild(makeTicketRubroSel(i, it.rubro));
+    div.appendChild(makeTicketSubSel(i, it.rubro, it.subrubro));
+    container.appendChild(div);
+  });
+  updateTicketSummary();
+}
+
+function updateTicketSummary() {
+  const total = ticketItems.reduce((s,it) => s + (it.monto||0), 0);
+  document.getElementById('ticket-count').textContent = ticketItems.length + ' ítem' + (ticketItems.length!==1?'s':'');
+  document.getElementById('ticket-total').textContent = '$' + total.toLocaleString('es-AR');
+}
+
 async function sendToSharePoint(entry) {
   if (!webhookUrl) return;
   try {
@@ -1077,6 +1256,33 @@ function submitEntry() {
   const formaPago = document.getElementById('formaPago').value;
 
   if (!formaPago) { showToast('Seleccioná la forma de pago', 'error'); return; }
+
+  if (currentMode === 'ticket') {
+    if (!ticketItems.length) { showToast('No hay ítems para guardar', 'error'); return; }
+    const notaGeneral = document.getElementById('ticket-nota').value.trim();
+    // Group by rubro+subrubro
+    const groups = {};
+    ticketItems.forEach(it => {
+      const key = it.rubro + '||' + it.subrubro;
+      if (!groups[key]) groups[key] = { rubro: it.rubro, subrubro: it.subrubro, monto: 0 };
+      groups[key].monto += it.monto || 0;
+    });
+    const newEntries = Object.values(groups).map(g => ({
+      id: Date.now() + Math.random(), tipo, fecha, formaPago,
+      moneda: document.getElementById('moneda').value,
+      cuotas: (() => { const v = document.getElementById('cuotas').value.trim(); return v ? parseInt(v) : null; })(),
+      rubro: g.rubro, subrubro: g.subrubro,
+      monto: Math.round(g.monto * 100) / 100,
+      nota: notaGeneral, ts: new Date().toISOString()
+    }));
+    entries.unshift(...newEntries);
+    localStorage.setItem('gasto_entries', JSON.stringify(entries));
+    newEntries.forEach(e => sendToSharePoint(e));
+    renderRecent();
+    resetForm();
+    showToast(newEntries.length + ' registros agrupados guardados ✓', 'success');
+    return;
+  }
 
   if (currentMode === 'single') {
     const rubro = document.getElementById('rubro').value;
@@ -1140,6 +1346,16 @@ function resetForm() {
   document.getElementById('multi-nota').value = '';
   updateMultiSummary();
   if (currentMode === 'multi') addMultiItem();
+  // reset ticket
+  ticketItems = [];
+  document.getElementById('ticket-items-container').innerHTML = '';
+  document.getElementById('ticket-table-wrap').style.display = 'none';
+  document.getElementById('ticket-analyzing').style.display = 'none';
+  document.getElementById('ticket-preview').style.display = 'none';
+  document.getElementById('ticket-upload-text').textContent = 'Tocá para subir una foto';
+  document.getElementById('ticket-nota').value = '';
+  const fi = document.getElementById('ticket-file'); if(fi) fi.value = '';
+  updateTicketSummary();
 }
 
 const iconMap = { Compras:'🛒', Auto:'🚗', Salidas:'🍽️', Colegio:'🎒', Animales:'🐾', Casa:'🏠', Transporte:'🚌', Vacaciones:'✈️', Servicios_e_impuestos:'💡', Inversiones:'📈', 'Sueldo Mio':'💰', 'Sueldo Jose':'💰', TC:'💳', Terapias:'🩺', Bebes:'👶', Limpieza:'🧹', default:'📝' };
