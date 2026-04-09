@@ -1101,8 +1101,7 @@ async function handleTicketPhoto(input) {
     document.getElementById('ticket-table-wrap').style.display = 'none';
 
     const rubrosEgreso = DATA.rubrosEgreso;
-    const subsList = Object.entries(rubrosEgreso).map(([r,ss]) => r.replace(/_/g,' ') + ': ' + ss.join(', ')).join('
-');
+    const subsList = Object.entries(rubrosEgreso).map(([r,ss]) => r.replace(/_/g,' ') + ': ' + ss.join(', ')).join('\n');
 
     const prompt = `Analizá este ticket de compra y extraé TODOS los ítems con sus montos finales (después de descuentos).
 Para cada ítem, asigná el rubro y subrubro MÁS apropiado de la siguiente lista.
